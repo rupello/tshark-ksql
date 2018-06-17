@@ -3,7 +3,9 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # pass in -r <file> to specify a file or -i <interface>
-tshark  -T fields -E separator=',' $@ \
+# notes:
+#      -l unbuffered output
+tshark -l -T fields -E separator=',' $@ \
     -Y tcp.stream \
     -e tcp.stream \
     -e tcp.seq \

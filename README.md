@@ -11,7 +11,9 @@ docker-compose up -d
 
 docker-compose exec ksql-cli ksql http://ksql-server:8088
 
-REATE STREAM tcp (streamid BIGINT, seq BIGINT) with (KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited') ;
+CREATE STREAM tcp (streamid INTEGER, seq INTEGER) with (KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited') ;
+
+SELECT * from tcp ;
 
 ```
 
