@@ -9,6 +9,8 @@ tshark -l -T fields -E separator=',' $@ \
     -Y tcp.stream \
     -e tcp.stream \
     -e tcp.seq \
-    | kafkacat -b localhost:9092 -P -t tcp_topic
+    | docker run --net tshark-ksql_default -i \
+        confluentinc/cp-kafkacat kafkacat \
+        -b kafka:29092 -P -t tcp_topic
 
 
