@@ -8,7 +8,12 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 tshark -l -T fields -E separator=',' $@ \
     -Y tcp.stream \
     -e tcp.stream \
+    -e ip.src \
+    -e tcp.srcport \
+    -e ip.dst \
+    -e tcp.dstport \
     -e tcp.seq \
+    -e tcp.len \
     | docker run --net tshark-ksql_default -i \
         confluentinc/cp-kafkacat kafkacat \
         -b kafka:29092 -P -t tcp_topic

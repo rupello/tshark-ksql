@@ -15,6 +15,12 @@ CREATE STREAM tcp (streamid INTEGER, seq INTEGER) with (KAFKA_TOPIC='tcp_topic',
 
 SELECT * from tcp ;
 
+CREATE TABLE tcp_table(streamid INTEGER, seq INTEGER) with (key='streamid', KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited') ;
+
+https://docs.confluent.io/current/ksql/docs/tutorials/basics-local.html
+
+
+
 ```
 
 
