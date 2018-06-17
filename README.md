@@ -1,23 +1,24 @@
 # tshark-ksql
 
-Analyze tshark output with KSQL
+### Some experiments running KSQL queries on tshark output
+
 
 Instructions:
 
 ```
+
+# bring up kafka, zookeeper, ksql etc...
 docker-compose up -d
 
-./collect-tcp.sh
+# start tshark ingest
+./tshark2kafka.sh
 
+# run the KSQL cli
 docker-compose exec ksql-cli ksql http://ksql-server:8088
 
-CREATE STREAM tcp (streamid INTEGER, seq INTEGER) with (KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited') ;
 
-SELECT * from tcp ;
-
-CREATE TABLE tcp_table(streamid INTEGER, seq INTEGER) with (key='streamid', KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited') ;
-
-https://docs.confluent.io/current/ksql/docs/tutorials/basics-local.html
+# https://docs.confluent.io/current/ksql/docs/tutorials/basics-local.html
+# https://docs.confluent.io/current/ksql/docs/tutorials/examples.html
 
 
 CREATE STREAM tcp ( \
@@ -31,19 +32,7 @@ CREATE STREAM tcp ( \
     ) \
     with (KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited') ;
 
-CREATE TABLE tcp_tbl ( \
-    tcp_stream INTEGER, \
-    ip_src VARCHAR, \
-    tcp_srcport INTEGER, \
-    ip_dst VARCHAR, \
-    tcp_dstport INTEGER, \
-    tcp_seq INTEGER, \
-    tcp_len INTEGER \
-    ) \
-    with (KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited', KEY='tcp_stream') ;
-
-(no output seen)
-
+# Filtering
 CREATE STREAM http as SELECT * FROM tcp WHERE tcp_dstport = 80 or tcp_srcport = 80 ;
 CREATE STREAM https as SELECT * FROM tcp WHERE tcp_dstport = 443 or tcp_srcport = 443 ;
 
@@ -53,7 +42,10 @@ SELECT * FROM http ;
 # a new topic is created
 # kafkacat -b localhost:9092 -C -t HTTP
 
-DROP TABLE tcp_stats ;
+# aggregates
+CREATE TABLE test_stats_by_ip WITH (value_format='delimited') AS SELECT ip_src, ip_dst, COUNT(*) AS msgcount \
+FROM tcp GROUP BY ip_src, ip_dst ;
+
 CREATE TABLE stats_by_ip WITH (value_format='delimited') AS SELECT ip_src, ip_dst, COUNT(*) AS msgcount \
 FROM tcp WINDOW TUMBLING (size 10 second) GROUP BY ip_src, ip_dst ;
 
@@ -66,6 +58,26 @@ TERMINATE <QUERY> ;
 
 
 
+# try json
+
+CREATE TABLE json_stats_by_ip WITH (value_format='json') AS SELECT ip_src, ip_dst, COUNT(*) AS msgcount \
+FROM tcp WINDOW TUMBLING (size 10 second) GROUP BY ip_src, ip_dst ;
+
+# kafka topic is in JSON
+kafkacat -b localhost:9092 -C -t JSON_STATS_BY_IP
+{"MSGCOUNT":1,"IP_DST":"192.168.86.85","IP_SRC":"192.168.86.99"}
+{"MSGCOUNT":2,"IP_DST":"192.168.86.84","IP_SRC":"192.168.86.85"}
+{"MSGCOUNT":2,"IP_DST":"192.168.86.99","IP_SRC":"192.168.86.85"}
+
+
+CREATE STREAM json_https WITH (value_format='json') AS SELECT * FROM tcp WHERE tcp_dstport = 443 or tcp_srcport = 443 ;
+
+# try avro
+CREATE STREAM avro_https WITH (value_format='avro') AS SELECT * FROM tcp WHERE tcp_dstport = 443 or tcp_srcport = 443 ;
+
+# check schema registry
+curl http://localhost:8081/subjects/
+curl http://localhost:8081/subjects/AVRO_HTTPS-value/versions/1
 
 
 ```
