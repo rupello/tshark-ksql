@@ -22,13 +22,18 @@ docker-compose exec ksql-cli ksql http://ksql-server:8088
 
 
 CREATE STREAM tcp ( \
+    frame_time DOUBLE, \
     tcp_stream INTEGER, \
     ip_src VARCHAR, \
     tcp_srcport INTEGER, \
     ip_dst VARCHAR, \
     tcp_dstport INTEGER, \
     tcp_seq INTEGER, \
-    tcp_len INTEGER \
+    tcp_len INTEGER, \
+    tcp_syn INTEGER, \
+    tcp_ack INTEGER, \
+    tcp_fin INTEGER, \
+    tcp_res INTEGER \
     ) \
     with (KAFKA_TOPIC='tcp_topic', VALUE_FORMAT='delimited') ;
 
@@ -79,7 +84,14 @@ CREATE STREAM avro_https WITH (value_format='avro') AS SELECT * FROM tcp WHERE t
 curl http://localhost:8081/subjects/
 curl http://localhost:8081/subjects/AVRO_HTTPS-value/versions/1
 
+# add constants tests
+create stream poop with (value_format='json') as select 1,'poop' from http ;
 
+# tcp connection times
+SELECT TCP_STREAM, 1000.0*(MAX(frame_time)-MIN(frame_time)) \
+FROM tcp WINDOW SESSION (2 SECONDS) \
+WHERE tcp_syn <> 0  \
+GROUP BY TCP_STREAM ;
 ```
 
 

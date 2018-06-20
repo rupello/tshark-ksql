@@ -7,6 +7,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 #      -l unbuffered output
 tshark -l -T fields -E separator=',' $@ \
     -Y tcp.stream \
+    -e frame.time_epoch \
     -e tcp.stream \
     -e ip.src \
     -e tcp.srcport \
@@ -14,6 +15,10 @@ tshark -l -T fields -E separator=',' $@ \
     -e tcp.dstport \
     -e tcp.seq \
     -e tcp.len \
+    -e tcp.flags.syn \
+    -e tcp.flags.ack \
+    -e tcp.flags.fin \
+    -e tcp.flags.res \
     | docker run --net tshark-ksql_default -i \
         confluentinc/cp-kafkacat kafkacat \
         -b kafka:29092 -P -t tcp_topic
